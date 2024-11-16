@@ -22,7 +22,7 @@ private int dataID = 1; //change this value for the correct ID
     {
       // Debug.Log($"Data from Arduino: {v.Value.GetValue()}");
       float myValue = v.Value.GetValue() / 100.0f;
-      //DO SOMETHING
+      //DO SOMETHING e.g. 
       transform.position = new Vector3(myValue, transform.position.y, transform.position.z);
     }
   }
