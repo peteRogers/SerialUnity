@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class SimpleDataReader : MonoBehaviour
+public class JumpExample : MonoBehaviour
 {
  float jumpForce = 10f;
 float threshold = 100f;
