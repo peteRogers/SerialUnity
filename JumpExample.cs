@@ -3,18 +3,17 @@ using UnityEngine;
 public class JumpExample : MonoBehaviour
 {
  float jumpForce = 10f;
-float threshold = 100f;
-float groundCheckDistance = 0.1f;
- float jumpCooldown = 0.3f;
+float threshold = 0.1f;
+ float jumpCooldown = 0.03f;
 
-  [SerializeField] private LayerMask groundLayerMask = ~0; // default: all layers
-  [SerializeField] private float groundExtraDistance = 0.05f; // small cushion beyond collider
+  [SerializeField] private float groundYThreshold = 0f;   // Consider grounded when transform.position.y <= this
+  [SerializeField] private float groundTolerance = 0.05f;  // Cushion to avoid flicker
+
   private float _prevValue = 0f; // to detect rising edge over threshold
   private float lastJumpTime = -Mathf.Infinity;
 
   private ArduinoCommunicator arduinoCommunicator;
   private Rigidbody rb;
-  private Collider col;
 
   void Start()
   {
@@ -24,29 +23,22 @@ float groundCheckDistance = 0.1f;
     {
       Debug.LogError("Rigidbody component missing from this GameObject.");
     }
-    col = GetComponent<Collider>();
-    if (col == null)
+    if (Mathf.Approximately(groundYThreshold, 0f))
     {
-      Debug.LogError("Collider component missing from this GameObject. Ground check needs a collider to estimate feet position.");
+      groundYThreshold = transform.position.y;
     }
   }
 
   void FixedUpdate()
   {
     ArduinoValue? v = arduinoCommunicator.GetItemById(0);
-    if (v != null && col != null && rb != null)
+    if (v != null && rb != null)
     {
-      float valueRaw = v.Value.GetValue();
-      float value = Mathf.Lerp(_prevValue, valueRaw, 0.3f);
+      float value = v.Value.GetValue();
+      
+      bool isGrounded = transform.position.y <= (groundYThreshold + groundTolerance);
 
-      float sphereRadius = 0.25f;
-      Vector3 spherePosition = col.bounds.center + Vector3.down * (col.bounds.extents.y - 0.05f);
-      bool isGrounded = Physics.CheckSphere(spherePosition, sphereRadius, groundLayerMask, QueryTriggerInteraction.Ignore);
-#if UNITY_EDITOR
-      Debug.DrawRay(col.bounds.center, Vector3.down * (col.bounds.extents.y + groundExtraDistance), isGrounded ? Color.green : Color.red, 0f, false);
-#endif
-
-      //Debug.Log($"isGrounded: {isGrounded}, value: {value}");
+      Debug.Log($"isGrounded: {isGrounded}, value: {value}");
 
       // Rising-edge trigger: only jump when we cross the threshold this frame, and we are grounded
       bool crossedUp = _prevValue >= threshold && value < threshold;
@@ -65,25 +57,9 @@ float groundCheckDistance = 0.1f;
         rb.AddTorque(randomTorque, ForceMode.Impulse);
       }
 
-      // Falling-edge trigger
-      bool crossedDown = _prevValue > 105f && value < 95f;
-      if (crossedDown)
-      {
-        // Implement any desired behavior for falling-edge trigger here
-      }
+  
 
       _prevValue = value;
-    }
-  }
-
-  void OnDrawGizmosSelected()
-  {
-    if (col != null)
-    {
-      float sphereRadius = col.bounds.size.x * 0.5f;
-      Vector3 spherePosition = col.bounds.center + Vector3.down * (col.bounds.extents.y - sphereRadius + groundExtraDistance);
-      Gizmos.color = Color.yellow;
-      Gizmos.DrawWireSphere(spherePosition, sphereRadius);
     }
   }
 }
